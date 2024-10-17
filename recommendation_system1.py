@@ -25,19 +25,19 @@ class RecommendationSystem1:
 
     def parse_opening_time(self, opening_time):
         all_day_hours = []
-        for day_hours in opening_time.split(", 星期"):
+        for day_hours in opening_time.split(", "):
             if day_hours.strip():
                 all_day_hours.append(day_hours.strip())
         return all_day_hours
 
     def is_open(self, hours_dict, day, time):
         for hours in hours_dict:
-            the_day = hours[0]
+            the_day = hours[2]
             if day == the_day:
                 if '休息' in hours:
-                    continue
+                    return False
                 else:
-                    time_periods = [period.strip() for period in hours[1:].split(' ') if period.strip()]
+                    time_periods = [period.strip() for period in hours[3:].split(' ') if period.strip()]
                     for time_period in time_periods:
                         try:
                             if "–" in time_period:
