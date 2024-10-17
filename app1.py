@@ -23,15 +23,14 @@ class RestaurantAPI:
             dining_hour = data.get('dining_hour')
             user_preferences = data.get('user_preferences')
 
-            if dining_day:
+            if dining_day != -1:
                 try:
-                    dining_day = int(dining_day)
-                    if dining_day not in range(7):
-                        raise ValueError("0-6 的數字")
+                    if dining_day not in range(1, 8):
+                        raise ValueError("1-7 的數字")
                 except ValueError as e:
                     return jsonify({'error': str(e)}), 400
 
-                days_dict = {0: "日", 1: "一", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六"}
+                days_dict = {1: "一", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六", 7: "日"}
                 dining_day = days_dict[dining_day]
             else:
                 dining_day = None
@@ -75,7 +74,7 @@ if __name__ == '__main__':
         'database': "",
         'port': ""
     }
-    jieba_dict_path = '/dict.txt.big'
+    jieba_dict_path = './dict.txt.big'
 
     recommendation_system = RecommendationSystem1(db_config, jieba_dict_path)
     restaurant_api = RestaurantAPI(recommendation_system)

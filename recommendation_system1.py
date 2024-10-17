@@ -44,7 +44,7 @@ class RecommendationSystem1:
                                 start, end = time_period.split('–')
                             elif "-" in time_period:
                                 start, end = time_period.split('-')
-                            elif "24 小時營業" in time_period:
+                            elif ("24" or "小時營業") in time_period: # 24 小時營業
                                 start = "00:00"
                                 end = "23:59"
                             else:
@@ -98,27 +98,42 @@ class RecommendationSystem1:
 
     def enhance_with_user_preferences(self, recommended_restaurants, user_preferences, cuisine_type):
         preference_texts = [' '.join(user_preferences)]
-        category_items = self.get_category_items(cuisine_type)
+        category_items = self.get_category_items(cuisine_type) if cuisine_type else []
         category_texts = [' '.join(category_items)]
-        cuisine_type_texts = [cuisine_type]
+        cuisine_type_texts = [cuisine_type] if cuisine_type else []
 
         vectorizer = TfidfVectorizer(stop_words=["料", "理", "餐", "廳", "式", "國"], tokenizer=self.tokenize)
         combined_texts = preference_texts + category_texts + cuisine_type_texts
         combined_matrix = vectorizer.fit_transform(combined_texts)
 
         user_preference_vector = combined_matrix[0]
-        category_vector = combined_matrix[1]
-        cuisine_type_vector = combined_matrix[2]
+        category_vector = combined_matrix[1] if category_items else None
+        cuisine_type_vector = combined_matrix[2] if cuisine_type else None
 
         preference_scores = []
         for restaurant in recommended_restaurants:
             restaurant_text = f"{restaurant[1]} {restaurant[3]}"
             restaurant_vector = vectorizer.transform([restaurant_text])
-            cuisine_similarity = linear_kernel(cuisine_type_vector, restaurant_vector).flatten()[0]
-            user_preference_similarity = linear_kernel(user_preference_vector, restaurant_vector).flatten()[0]
-            category_similarity = linear_kernel(category_vector, restaurant_vector).flatten()[0]
 
-            score = (cuisine_similarity * 0.6) + (user_preference_similarity * 0.2) + (category_similarity * 0.2)
+            # 計算相似度，只在 vector 存在時才計算
+            if cuisine_type_vector is not None:
+                cuisine_similarity = linear_kernel(cuisine_type_vector, restaurant_vector).flatten()[0]
+            else:
+                cuisine_similarity = 0
+            
+            user_preference_similarity = linear_kernel(user_preference_vector, restaurant_vector).flatten()[0]
+            
+            if category_vector is not None:
+                category_similarity = linear_kernel(category_vector, restaurant_vector).flatten()[0]
+            else:
+                category_similarity = 0
+
+            # 根據有無 cuisine_type 調整權重
+            if cuisine_type:
+                score = (cuisine_similarity * 0.6) + (user_preference_similarity * 0.2) + (category_similarity * 0.2)
+            else:
+                score = user_preference_similarity
+            
             preference_scores.append(score)
 
         sorted_indices = np.argsort(preference_scores)[::-1]
@@ -128,17 +143,30 @@ class RecommendationSystem1:
 
     def recommend_restaurants(self, location, cuisine_type, price_range, dining_day, dining_hour, user_preferences):
         restaurants = self.get_restaurants()
-        dining_time = datetime.datetime.strptime(dining_hour, "%H:%M")
+
+        # 處理 dining_hour
+        if dining_hour:
+            dining_time = datetime.datetime.strptime(dining_hour, "%H:%M")
+        else:
+            dining_time = None
 
         open_restaurants = []
         for restaurant in restaurants:
-            if location.lower() not in restaurant[2].lower():
+            # location 為 null 時，不過濾位置
+            if location and location.lower() not in restaurant[2].lower():
                 continue
-            if not self.price_in_range(restaurant[4], price_range):
+
+            # 當 price_range 為 -1 時，不過濾價格範圍
+            if price_range != -1 and not self.price_in_range(restaurant[4], price_range):
                 continue
-            hours_dict = self.parse_opening_time(restaurant[5])
-            if self.is_open(hours_dict, dining_day, dining_time):
-                open_restaurants.append(restaurant)
+            
+
+            if dining_day and dining_time :
+                hours_dict = self.parse_opening_time(restaurant[5])
+                if not self.is_open(hours_dict, dining_day, dining_time):
+                    continue
+            
+            open_restaurants.append(restaurant)
 
         if not open_restaurants:
             return []
