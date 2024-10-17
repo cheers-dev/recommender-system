@@ -126,7 +126,7 @@ class RecommendationSystem1:
 
         return enhanced_recommendations
 
-    def recommend_restaurants(self, location, cuisine_type, price_range, dining_day, dining_hour):
+    def recommend_restaurants(self, location, cuisine_type, price_range, dining_day, dining_hour, user_preferences):
         restaurants = self.get_restaurants()
         dining_time = datetime.datetime.strptime(dining_hour, "%H:%M")
 
@@ -143,7 +143,6 @@ class RecommendationSystem1:
         if not open_restaurants:
             return []
 
-        user_preferences = ["咖哩", "漢堡", "壽司"]
         enhanced_recommendations = self.enhance_with_user_preferences(open_restaurants, user_preferences, cuisine_type)
 
         return enhanced_recommendations

@@ -21,6 +21,7 @@ class RestaurantAPI:
             price_range = data.get('price')
             dining_day = data.get('dining_day')
             dining_hour = data.get('dining_hour')
+            user_preferences = data.get('user_preferences')
 
             if dining_day:
                 try:
@@ -44,7 +45,7 @@ class RestaurantAPI:
                 dining_hour = None
 
             recommended_restaurants = self.recommendation_system.recommend_restaurants(
-                location, cuisine_type, price_range, dining_day, dining_hour)
+                location, cuisine_type, price_range, dining_day, dining_hour, user_preferences)
 
             if recommended_restaurants:
                 response = [
