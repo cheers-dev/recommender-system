@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
 import datetime
 from recommendation_system1 import RecommendationSystem1
+from find_leader import FindLeader
 
-class RestaurantAPI:
-    def __init__(self, recommendation_system):
+class RecommendationAPI:
+    def __init__(self, recommendation_system, find_leader):
         self.recommendation_system = recommendation_system
+        self.find_leader = find_leader
         self.app = Flask(__name__)
         self.setup_routes()
 
@@ -63,6 +65,29 @@ class RestaurantAPI:
             else:
                 return jsonify({'message': "抱歉，沒有找到符合條件的餐廳。"}), 404
 
+        @self.app.route('/get-leader-preferences', methods=['POST'])
+        def find_leader():
+            try:
+                # 從 POST 請求中獲取 chatroom_id
+                data = request.get_json()
+                chatroom_id = data.get('chatroom_id')
+
+                if not chatroom_id:
+                    return jsonify({"error": "chatroom_id is required"}), 400
+
+                # 調用主函數
+                leader_id, top_3_preferences, opinion_weight = self.find_leader.main(chatroom_id)
+
+                # 返回結果
+                return jsonify({
+                    "leader_id": leader_id,
+                    "top_3_preferences": top_3_preferences,
+                    "opinion_weight": opinion_weight
+                })
+
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
     def run(self, host='0.0.0.0', port=5001):
         self.app.run(host=host, port=port)
 
@@ -77,5 +102,6 @@ if __name__ == '__main__':
     jieba_dict_path = './dict.txt.big'
 
     recommendation_system = RecommendationSystem1(db_config, jieba_dict_path)
-    restaurant_api = RestaurantAPI(recommendation_system)
-    restaurant_api.run()
+    find_leader = FindLeader(db_config)
+    recommendation_api = RecommendationAPI(recommendation_system, find_leader)
+    recommendation_api.run()
