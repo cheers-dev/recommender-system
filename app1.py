@@ -48,6 +48,9 @@ class RecommendationAPI:
             recommended_restaurants = self.recommendation_system.recommend_restaurants(
                 location, cuisine_type, price_range, dining_day, dining_hour, user_preferences)
 
+            if len(recommended_restaurants) > 20:
+                recommended_restaurants = recommended_restaurants[:20]
+
             if recommended_restaurants:
                 response = [
                     {
@@ -56,7 +59,7 @@ class RecommendationAPI:
                         'category': restaurant[3],
                         'price': restaurant[4],
                         'opening_time': restaurant[5],
-                        'rating': restaurant[6],
+                        'rating': float(restaurant[6]),
                         'phone': restaurant[7]
                     }
                     for restaurant in recommended_restaurants
