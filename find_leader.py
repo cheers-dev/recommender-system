@@ -3,9 +3,30 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import distance
 
+column_mapping = {
+    "american": "美式",
+    "bar": "酒吧",
+    "chinese": "中式",
+    "dessert": "甜點",
+    "exotic": "異國料理",
+    "french": "法式",
+    "hongkong": "港式",
+    "italian": "義式",
+    "japanese": "日式",
+    "korean": "韓式",
+    "southeastAsian": "東南亞",
+    "thai": "泰式",
+    "vietnamese": "越式",
+    "western": "西式",
+}
+
 class FindLeader:
     def __init__(self, db_config):
         self.conn = psycopg2.connect(**db_config)
+    
+    def __del__(self):
+        if self.conn:
+            self.conn.close()
 
     def get_user_preference(self, chatroom_id):
         """
@@ -17,9 +38,9 @@ class FindLeader:
         cur = self.conn.cursor()
 
         sql = f"""
-        SELECT cp.user_id, up.美式, up.酒吧, up.中式, up.甜點, up.異國料理,
-            up.法式, up.港式, up.義式, up.日式, up.韓式,
-            up.東南亞, up.泰式, up.越式, up.西式
+        SELECT cp.user_id, up.american, up.bar, up.chinese, up.dessert, up.exotic,
+            up.french, up.hongkong, up.italian, up.japanese, up.korean,
+            up."southeastAsian", up.thai, up.vietnamese, up.western
         FROM chatroom_participant cp
         JOIN user_preference up ON cp.user_id = up.user_id
         WHERE cp.chatroom_id = '{chatroom_id}'
@@ -29,6 +50,8 @@ class FindLeader:
 
         column_name = [desc[0] for desc in cur.description] # get column name
         rows = pd.DataFrame(cur.fetchall(), columns=column_name)
+
+        rows.rename(columns=column_mapping, inplace=True)
 
         return rows
 
